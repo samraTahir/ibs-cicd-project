@@ -1,0 +1,45 @@
+service: ibs-part1
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'develop'}
+  runtime: nodejs18.x
+  region: us-east-1
+  memorySize: 256
+  timeout: 30
+  profile: ibs
+  role: ${file(../.secrets.yml):lambdaRole}
+  deploymentBucket: ibs-deployment-artifacts-12345
+  vpc:
+    securityGroupIds:
+      - ${file(../.secrets.yml):securityGroup}
+    subnetIds:
+      - ${file(../.secrets.yml):subnet1}
+  environment:
+    ENVIRONMENT: ${file(../.secrets.yml):environment}
+    DB_HOST: ${file(../sm-secrets.yml):POSTGRES_DB_HOST}
+    DB_USER: ${file(../sm-secrets.yml):POSTGRES_DB_USER}
+    DB_PASSWORD: ${file(../sm-secrets.yml):POSTGRES_DB_PASSWORD}
+    BUCKET_NAME: ${file(../.secrets.yml):bucketName}
+
+functions:
+  hello-part1:
+    handler: ../src/index.handler
+    description: Part 1 - Basic Lambda function
+    events:
+      - http:
+          path: hello
+          method: GET
+          cors: true
+
+  status-part1:
+    handler: ../src/index.handler
+    description: Part 1 - Status check
+    events:
+      - http:
+          path: status
+          method: GET
+          cors: true
+
+plugins:
+  - serverless-prune-plugin

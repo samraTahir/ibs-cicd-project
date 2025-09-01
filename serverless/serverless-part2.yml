@@ -1,0 +1,51 @@
+service: ibs-part2
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'develop'}
+  runtime: nodejs18.x
+  region: us-east-1
+  memorySize: 256
+  timeout: 30
+  profile: ibs
+  role: ${file(../.secrets.yml):lambdaRole}
+  deploymentBucket: ibs-deployment-artifacts-12345
+  vpc:
+    securityGroupIds:
+      - ${file(../.secrets.yml):securityGroup}
+    subnetIds:
+      - ${file(../.secrets.yml):subnet1}
+  environment:
+    ENVIRONMENT: ${file(../.secrets.yml):environment}
+    DB_HOST: ${file(../sm-secrets.yml):POSTGRES_DB_HOST}
+    DB_USER: ${file(../sm-secrets.yml):POSTGRES_DB_USER}
+    DB_PASSWORD: ${file(../sm-secrets.yml):POSTGRES_DB_PASSWORD}
+    BUCKET_NAME: ${file(../.secrets.yml):bucketName}
+
+functions:
+  api-part2:
+    handler: ../src/index.handler
+    description: Part 2 - API functions
+    events:
+      - http:
+          path: api/users
+          method: GET
+          cors: true
+      - http:
+          path: api/users
+          method: POST
+          cors: true
+
+  data-part2:
+    handler: ../src/index.handler
+    description: Part 2 - Data processing
+    events:
+      - s3:
+          bucket: ${file(../.secrets.yml):bucketName}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: uploads/
+            - suffix: .json
+
+plugins:
+  - serverless-prune-plugin
